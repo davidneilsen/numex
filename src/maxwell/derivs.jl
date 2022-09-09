@@ -89,7 +89,7 @@ function diff42_y!(dyu, u, dy)
     end
 end
 
-function kodiss!(f, u, dx, dy)
+function kodiss_nobndry!(f, u, dx, dy)
     nx, ny = size(f)
     sigma = 0.05
     idx = sigma/dx
@@ -102,5 +102,44 @@ function kodiss!(f, u, dx, dy)
     end
 end
 
+function kodiss!(f, u, dx, dy)
+    kodiss_x!(f, u, dx)
+    kodiss_y!(f, u, dy)
+end
+
+function kodiss_x!(f, u, dx)
+    nx, ny = size(f)
+    sigma = 0.05
+    idx = sigma/dx
+    for j = 1:ny
+        f[1,j] -= 2.0*(u[3,j] - 2.0*u[2,j] + u[1,j])*idx
+        f[2,j] -= (u[4,j] - 4.0*u[3,j] + 5.0*u[2,j] - 2.0*u[1,j])*idx
+        for i = 3:nx-2
+            f[i,j] -= (u[i+2,j] - 4.0*u[i+1,j] + 6.0*u[i,j]
+                                - 4.0*u[i-1,j] + u[i-2,j])*idx
+        end
+        f[nx-1,j] -= (u[nx-3,j] - 4.0*u[nx-2,j] + 5.0*u[nx-1,j] - 2.0*u[nx,j]  ) *idx
+        f[nx,j] -= 2.0 * (u[nx-2,j] - 2.0*u[nx-1,j] + u[nx,j])*idx
+    end
+
+end
+
+function kodiss_y!(f, u, dy)
+    nx, ny = size(f)
+    sigma = 0.05
+    idy = sigma/dy
+
+    for i = 1:nx
+        f[i,1] -= 2.0*(u[i,3] - 2.0*u[i,2] + u[i,1])*idy
+        f[i,2] -= (u[i,4] - 4.0*u[i,3] + 5.0*u[i,2] - 2.0*u[i,1]  )*idy
+        for j = 3:ny-2
+            f[i,j] -= (u[i,j+2] - 4.0*u[i,j+1] + 6.0*u[i,j]
+                                - 4.0*u[i,j-1] + u[i,j-2])*idy
+        end
+        f[i,ny-1] -= (u[i,ny-3] - 4.0*u[i,ny-2] + 5.0*u[i,ny-1] - 2.0*u[i,ny])*idy
+        f[i,ny] -= 2.0*(u[i,ny-2] - 2.0*u[i,ny-1] + u[i,ny]  )*idy
+    end
+ 
+end
 
 

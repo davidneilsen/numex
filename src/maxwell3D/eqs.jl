@@ -2,19 +2,21 @@
 function init_data!(fields)
     nx = fields.grid.nx
     ny = fields.grid.ny
+    nz = fields.grid.nz
 
     Ex = fields.u[1]
     Ey = fields.u[2]
     Bz = fields.u[3]
     x = fields.grid.x
     y = fields.grid.y
+    z = fields.grid.z
 
     amp1 = 1.0
     lambda1 = 1.0
 
-    for j=1:ny, i=1:nx
-        r = sqrt(x[i]*x[i] + y[j]*y[j])
-        Bz[i,j] = - 8.0*amp1*lambda1*lambda1*exp(-lambda1*r*r)
+    for k=1:nz, j=1:ny, i=1:nx
+        r = sqrt(x[i]*x[i] + y[j]*y[j] + z[k]*z[k])
+        Bz[i,j,k] = - 8.0*amp1*lambda1*lambda1*exp(-lambda1*r*r)
     end
 
 end
@@ -70,7 +72,7 @@ function maxwell_TE!(dtu, u, dxu, dyu, x, y, dx, dy, time)
     @. dtEy = -dxHz
     @. dtHz = dyEx - dxEy
 
-#
+=
     sommerfeld_bcs(dtu[1], u[1], x, y)
     sommerfeld_bcs(dtu[2], u[2], x, y)
     sommerfeld_bcs(dtu[3], u[3], x, y)
@@ -153,8 +155,8 @@ function sommerfeld_bcs_deriv(dtu, u, dxu, dyu, x, y)
     idx2 = 1.0/(2.0*dx)
     idy2 = 1.0/(2.0*dy)
 
-    diff22_x!(dxu, u, dx)
-    diff22_y!(dyu, u, dy)
+    diff21_x!(dxu, u, dx)
+    diff21_y!(dyu, u, dy)
 
     ############  j = 1
     j = 1

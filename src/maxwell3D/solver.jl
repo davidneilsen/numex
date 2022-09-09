@@ -47,8 +47,8 @@ function main(nt, cfl, n, VTKOutFreq)
 end
 
 n = 401
-nt = 7000
-cfl = 0.15
+nt = 5000
+cfl = 0.10
 vtkOutFreq = 10
 
 main(nt,cfl,n,vtkOutFreq)
