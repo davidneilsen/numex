@@ -51,236 +51,97 @@ function Xinit_data!(fields)
     end  
 end
 
-function maxwell_TE!(dtu, u, dxu, dyu, x, y, dx, dy, time)
+function maxwellEqs!(dtu, u, dxu, dyu, x, y, dx, dy, time)
     dtEx = dtu[1]
     dtEy = dtu[2]
-    dtHz = dtu[3]
-    Ex = u[1]
-    Ey = u[2]
-    Hz = u[3]
-    dyEx = dyu[1]
+    dtEz = dtu[3]
+    dtHx = dtu[4]
+    dtHy = dtu[5]
+    dtHz = dtu[6]
+
+    dxEx = dxu[1]
     dxEy = dxu[2]
-    dxHz = dxu[3]
-    dyHz = dyu[3]
+    dxEz = dxu[3]
+    dxBx = dxu[4]
+    dxBy = dxu[5]
+    dxBz = dxu[6]
 
-    diff22_y!(dyHz, Hz, dy)
-    diff22_x!(dxHz, Hz, dx)
-    diff22_x!(dxEy, Ey, dy)
-    diff22_y!(dyEx, Ex, dx)
+    dyEx = dyu[1]
+    dyEy = dyu[2]
+    dyEz = dyu[3]
+    dyBx = dyu[4]
+    dyBy = dyu[5]
+    dyBz = dyu[6]
 
-    @. dtEx = dyHz
-    @. dtEy = -dxHz
+    @. diff22_x!(dxu, u, dx)
+    @. diff22_y!(dyu, u, dy)
+    @. diff22_z!(dzu, u, dz)
+
+    @. dtEx = dyHz - dzHy
+    @. dtEy = dzHx - dxHz
+    @. dtEy = dxHy - dyHx
+
+    @. dtHx = dzEy - dyEz
+    @. dtHy = dxEz - dzEx
     @. dtHz = dyEx - dxEy
 
-=
-    sommerfeld_bcs(dtu[1], u[1], x, y)
-    sommerfeld_bcs(dtu[2], u[2], x, y)
-    sommerfeld_bcs(dtu[3], u[3], x, y)
-#=
-    sommerfeld_bcs_deriv(dtu[1], u[1], dxu[1], dyu[1], x, y)
-    sommerfeld_bcs_deriv(dtu[2], u[2], dxu[2], dyu[2], x, y)
-    sommerfeld_bcs_deriv(dtu[3], u[3], dxu[3], dyu[3], x, y)
-=#
-#=
-    dirichlet_bcs(dtu[1], u[1], x, y)
-    dirichlet_bcs(dtu[2], u[2], x, y)
-    dirichlet_bcs(dtu[3], u[3], x, y)
-=#
+    @. sommerfeld_bcs(dtu, u, dxu, dyu, dzu, x, y, z)
 
 end
 
-function maxwell_TM!(dtu, u, dxu, dyu, x, y, dx, dy, time)
-    dtHx = dtu[1]
-    dtHy = dtu[2]
-    dtEz = dtu[3]
-    Hx = u[1]
-    Hy = u[2]
-    Ez = u[3]
-    dyHx = dyu[1]
-    dxHy = dxu[2]
-    dxEz = dxu[3]
-    dyEz = dyu[3]
+function sommerfeld_bcs(dtu, u, dxu, dyu, dzu, x, y, z)
 
-    diff42_y!(dyEz, Ez, dy)
-    diff42_x!(dxEz, Ez, dx)
-    diff42_x!(dxHy, Hy, dy)
-    diff42_y!(dyHx, Hx, dx)
-
-    @. dtHx = -dyEz
-    @. dtHy =  dxEz
-    @. dtEz =  dxHy - dyHx
-
-    sommerfeld_bcs(dtu[1], u[1], x, y)
-    sommerfeld_bcs(dtu[2], u[2], x, y)
-    sommerfeld_bcs(dtu[3], u[3], x, y)
-end
-
-function dirichlet_bcs(dtu, u, x, y)
-    nx, ny = size(u)
-
-    ############  j = 1
-    j = 1
-    for i = 1:nx
-        dtu[i,j] = 0.0
-    end
-
-    ############  j = ny
-    j = ny
-    for i = 1:nx
-        dtu[i,j] = 0.0
-    end
-
-    ############  i = 1
-    i = 1
-    for j = 1:ny
-        dtu[i,j] = 0.0
-    end
-
-    ############  i = nx
-    i = nx
-    for j = 1:ny
-        dtu[i,j] = 0.0
-    end
- 
-end
-
-function sommerfeld_bcs_deriv(dtu, u, dxu, dyu, x, y)
-
-    nx, ny = size(u)
+    nx, ny, nz = size(u)
 
     u0::Float64 = 0.0
     u_falloff::Float64 = 2.0
-    dx = x[2]-x[1]
-    dy = y[2]-y[1]
-    idx2 = 1.0/(2.0*dx)
-    idy2 = 1.0/(2.0*dy)
-
-    diff21_x!(dxu, u, dx)
-    diff21_y!(dyu, u, dy)
 
     ############  j = 1
     j = 1
-    for i = 1:nx
-        dtu[i,j] = - (x[i]*dxu[i,j] + y[j]*dyu[i,j] + u_falloff*(u[i,j] - u0))/sqrt(x[i]*x[i] + y[j]*y[j])
+    for k = 1:ny
+        for i = 1:nx
+            dtu[i,j,k] = - (x[i]*dxu[i,j,k] + y[j]*dyu[i,j,k] z[k]*dzu[i,j,k] + u_falloff*(u[i,j,k] - u0))/sqrt(x[i]*x[i] + y[j]*y[j] + z[k]*z[k])
+        end
     end
 
     ############  j = ny
     j = ny
-    for i = 1:nx
-        dtu[i,j] = - (x[i]*dxu[i,j] + y[j]*dyu[i,j] + u_falloff*(u[i,j] - u0))/sqrt(x[i]*x[i] + y[j]*y[j])
+    for k = 1:nz
+        for i = 1:nx
+            dtu[i,j,k] = - (x[i]*dxu[i,j,k] + y[j]*dyu[i,j,k] z[k]*dzu[i,j,k] + u_falloff*(u[i,j,k] - u0))/sqrt(x[i]*x[i] + y[j]*y[j] + z[k]*z[k])
+        end
     end
 
     ############  i = 1
     i = 1
-    for j = 1:ny
-        dtu[i,j] = - (x[i]*dxu[i,j] + y[j]*dyu[i,j] + u_falloff*(u[i,j] - u0))/sqrt(x[i]*x[i] + y[j]*y[j])
+    for k = 1:nz
+        for j = 1:ny
+            dtu[i,j,k] = - (x[i]*dxu[i,j,k] + y[j]*dyu[i,j,k] z[k]*dzu[i,j,k] + u_falloff*(u[i,j,k] - u0))/sqrt(x[i]*x[i] + y[j]*y[j] + z[k]*z[k])
+        end
     end
 
     ############  i = nx
     i = nx
+    for k = 1:nz
+        for j = 1:ny
+            dtu[i,j,k] = - (x[i]*dxu[i,j,k] + y[j]*dyu[i,j,k] z[k]*dzu[i,j,k] + u_falloff*(u[i,j,k] - u0))/sqrt(x[i]*x[i] + y[j]*y[j] + z[k]*z[k])
+        end
+    end
+
+    ############  k = 1
+    k = 1
     for j = 1:ny
-        dtu[i,j] = - (x[i]*dxu[i,j] + y[j]*dyu[i,j] + u_falloff*(u[i,j] - u0))/sqrt(x[i]*x[i] + y[j]*y[j])
+        for i = 1:nx
+            dtu[i,j,k] = - (x[i]*dxu[i,j,k] + y[j]*dyu[i,j,k] z[k]*dzu[i,j,k] + u_falloff*(u[i,j,k] - u0))/sqrt(x[i]*x[i] + y[j]*y[j] + z[k]*z[k])
+        end
+    end
+
+    ############  k = nz
+    k = nz
+    for j = 1:ny
+        for i = 1:nx
+            dtu[i,j,k] = - (x[i]*dxu[i,j,k] + y[j]*dyu[i,j,k] z[k]*dzu[i,j,k] + u_falloff*(u[i,j,k] - u0))/sqrt(x[i]*x[i] + y[j]*y[j] + z[k]*z[k])
+        end
     end
     
-end
-
-function sommerfeld_bcs(dtu, u, x, y)
-
-    nx, ny = size(u)
-
-    u0::Float64 = 0.0
-    u_falloff::Float64 = 2.0
-    dx = x[2]-x[1]
-    dy = y[2]-y[1]
-    idx2 = 1.0/(2.0*dx)
-    idy2 = 1.0/(2.0*dy)
-
-    #########################  j=1 
-    j = 1
-
-    i = 1
-    inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-    dxu = (-3.0*u[1,j] + 4.0*u[2,j] - u[3,j]) * idx2
-    dyu = (-3.0*u[i,1] + 4.0*u[i,2] - u[i,3]) * idy2
-    dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-
-    for i = 2:nx-1
-        inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-        dxu = (u[i+1,j] - u[i-1,j])*idx2
-        dyu = (-3.0*u[i,1] + 4.0*u[i,2] - u[i,3]) * idy2
-        dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-    end
-
-    i = nx
-    inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-    dxu = ( 3.0*u[nx,j] - 4.0*u[nx-1,j] + u[nx-2,j]) * idx2
-    dyu = (-3.0*u[i,1]  + 4.0*u[i,2]    - u[i,3]) * idy2
-    dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-
-    #########################  j=ny
-    j = ny
-
-    i = 1
-    inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-    dxu = (-3.0*u[1,j] + 4.0*u[2,j] - u[3,j]) * idx2
-    dyu = ( 3.0*u[i,ny] - 4.0*u[i,ny-1] + u[i,ny-2]) * idy2
-    dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-
-    for i = 2:nx-1
-        inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-        dxu = (u[i+1,j] - u[i-1,j])*idx2
-        dyu = ( 3.0*u[i,ny] - 4.0*u[i,ny-1] + u[i,ny-2]) * idy2
-        dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-    end
-
-    i = nx
-    inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-    dxu = ( 3.0*u[nx,j] - 4.0*u[nx-1,j] + u[nx-2,j]) * idx2
-    dyu = ( 3.0*u[i,ny] - 4.0*u[i,ny-1] + u[i,ny-2]) * idy2
-    dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-
-    #########################  i=1 
-    i = 1
-
-    j = 1
-    inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-    dxu = (-3.0*u[1,j] + 4.0*u[2,j] - u[3,j]) * idx2
-    dyu = (-3.0*u[i,1] + 4.0*u[i,2] - u[i,3]) * idy2
-    dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-
-    for j = 2:ny-1
-        inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-        dxu = (-3.0*u[1,j] + 4.0*u[2,j] - u[3,j]) * idx2
-        dyu = (u[i,j+1] - u[i,j-1])*idy2
-        dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-    end
-
-    j = ny
-    inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-    dxu = (-3.0*u[1,j] + 4.0*u[2,j] - u[3,j]) * idx2
-    dyu = ( 3.0*u[i,ny] - 4.0*u[i,ny-1] + u[i,ny-2]) * idy2
-    dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-
-    #########################  i=nx
-    i = nx
-
-    j = 1
-    inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-    dxu = ( 3.0*u[nx,j] - 4.0*u[nx-1,j] + u[nx-2,j]) * idx2
-    dyu = (-3.0*u[i,1] + 4.0*u[i,2] - u[i,3]) * idy2
-    dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-
-    for j = 2:ny-1
-        inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-        dxu = ( 3.0*u[nx,j] - 4.0*u[nx-1,j] + u[nx-2,j]) * idx2
-        dyu = (u[i,j+1] - u[i,j-1])*idy2
-        dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-    end
-
-    j = ny
-    inv_r = 1.0/sqrt(x[i]*x[i] + y[j]*y[j])
-    dxu = ( 3.0*u[nx,j] - 4.0*u[nx-1,j] + u[nx-2,j]) * idx2
-    dyu = ( 3.0*u[i,ny] - 4.0*u[i,ny-1] + u[i,ny-2]) * idy2
-    dtu[i,j] = - inv_r*(x[i]*dxu + y[j]*dyu + u_falloff*(u[i,j] - u0))
-
 end
