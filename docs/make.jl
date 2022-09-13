@@ -1,6 +1,6 @@
-push!(LOAD_PATH,"../src/maxwell","../examples/vanderPol")
+push!(LOAD_PATH,"../src/maxwell","../examples/vanderPol","../src/wave1D","../src/nbody","../src/TOV")
 
-using Documenter, Maxwell
+using Documenter, Maxwell, Wave1D, NBody
 
 makedocs(
          sitename="numex",
@@ -13,6 +13,8 @@ makedocs(
                  "Home" => "index.md",
                  "Examples" => Any[
                     "Nonlinear Oscillator" => "vanderpol.md",
+                    "N-Body Gravity" => "nbody.md",
+                    "Wave Eq. 1D" => "wave1D.md",
                     "Maxwell" => "maxwell.md"
                   ]
                ]
